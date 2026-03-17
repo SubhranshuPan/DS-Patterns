@@ -32,36 +32,20 @@ def coin_change(coins, amount):
 | 5 | `dp[i] = min(dp[i], dp[i-coin] + 1)` | **Core transition**: "Can I improve `dp[i]` by using one more of this `coin`?" If `dp[i - coin] + 1` (use this coin + best way to make the remainder) is smaller than the current `dp[i]`, update it. |
 | 6 | `return dp[amount] if dp[amount] != float('inf') else -1` | If `dp[amount]` is still infinity, no combination of coins can make the amount → return `-1`. Otherwise return the answer. |
 
-### Why It Works (Intuition)
-
-Think of it as filling a table bottom-up. For every sub-amount from `0` to `amount`, we ask: *"What's the fewest coins I can use?"* By considering each coin and updating all reachable sub-amounts, we guarantee we've explored every valid combination.
-
 ### Example
 
 ```python
 coins = [1, 5, 10, 25]
 amount = 30
-
-print(coin_change(coins, amount))  # Output: 2
+print(coin_change(coins, amount))  # Output: 2  (one 25¢ + one 5¢)
 ```
-
-**Trace for `amount = 30`, `coins = [1, 5, 10, 25]`:**
-
-| Stage | What happens |
-|-------|-------------|
-| After processing coin `1` | `dp[0..30]` = `[0, 1, 2, 3, ..., 30]` — every amount reachable with 1-cent coins |
-| After processing coin `5` | `dp[5]` drops from `5` → `1`, `dp[10]` from `10` → `2`, etc. |
-| After processing coin `10` | `dp[10]` → `1`, `dp[20]` → `2`, `dp[30]` → `3` |
-| After processing coin `25` | `dp[25]` → `1`, `dp[30]` = `min(3, dp[30-25]+1)` = `min(3, dp[5]+1)` = `min(3, 2)` = **2** |
-
-Result: **2 coins** (one 25¢ + one 5¢).
 
 ### Time Complexity
 
 | Aspect | Complexity |
 |--------|-----------|
-| **Time** | **O(C × A)** — where `C` = number of coin denominations, `A` = `amount`. Two nested loops: outer over coins, inner over amounts. |
-| **Space** | **O(A)** — single 1D array of size `amount + 1`. |
+| **Time** | **O(C × A)** — `C` = coin denominations, `A` = amount |
+| **Space** | **O(A)** — single 1D array |
 
 ---
 
@@ -69,7 +53,7 @@ Result: **2 coins** (one 25¢ + one 5¢).
 
 ### What It Does
 
-Solves the classic **0/1 Knapsack** problem: given `n` items (each with a weight and value), determine the **maximum total value** you can carry in a knapsack of a given `capacity`. Each item can be taken **at most once**.
+Solves the **0/1 Knapsack** problem: maximize total value of items fitting in a knapsack of given `capacity`. Each item used **at most once**.
 
 ### Code Walkthrough
 
@@ -95,18 +79,11 @@ def knapsack(weights, values, capacity):
 | Step | Line | Explanation |
 |------|------|-------------|
 | 1 | `n = len(weights)` | Number of items. |
-| 2 | `dp = [[0] * (capacity + 1) for _ in range(n+1)]` | Create a 2D table of size `(n+1) × (capacity+1)`, initialized to `0`. `dp[i][w]` = max value achievable using the first `i` items with capacity `w`. Row 0 and column 0 are naturally `0` (no items or no capacity). |
-| 3 | `for i in range(1, n + 1):` | Consider items one by one (1-indexed; item `i` corresponds to `weights[i-1]`). |
-| 4 | `for w in range(capacity+1):` | For each item, evaluate every possible capacity from `0` to `capacity`. |
-| 5 | `if weights[i-1] <= w:` | **Can we fit item `i`?** If the item's weight ≤ current capacity `w`, we have a choice. |
-| 5a | `values[i-1] + dp[i-1][w - weights[i-1]]` | **Take the item**: gain its value, plus the best value from the remaining capacity using previous items. |
-| 5b | `dp[i-1][w]` | **Skip the item**: carry forward the best value without this item. |
-| 6 | `dp[i][w] = dp[i-1][w]` | Item doesn't fit → forced to skip it. |
-| 7 | `return dp[n][capacity]` | Answer sits in the bottom-right cell: all `n` items considered, full `capacity`. |
-
-### Why It Works (Intuition)
-
-For every item, at every capacity level, we make the optimal choice: **take it or leave it**. Because we build the table bottom-up (from fewer items and smaller capacities to more items and larger capacities), each cell leverages already-computed optimal sub-solutions.
+| 2 | `dp = [[0]*(capacity+1) for _ in range(n+1)]` | 2D table `(n+1) × (capacity+1)`, init to `0`. `dp[i][w]` = max value with first `i` items and capacity `w`. |
+| 3–4 | Nested loops | Consider each item at every capacity level. |
+| 5 | `if weights[i-1] <= w` | If item fits: pick the better of **take** or **skip**. |
+| 6 | `else: dp[i][w] = dp[i-1][w]` | Item doesn't fit → skip. |
+| 7 | `return dp[n][capacity]` | Answer in the bottom-right cell. |
 
 ### Example
 
@@ -114,37 +91,126 @@ For every item, at every capacity level, we make the optimal choice: **take it o
 weights  = [2, 3, 4, 5]
 values   = [3, 4, 5, 6]
 capacity = 8
-
 print(knapsack(weights, values, capacity))  # Output: 10
 ```
-
-**DP Table (rows = items 0..4, columns = capacity 0..8):**
-
-| i \ w | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
-|-------|---|---|---|---|---|---|---|---|---|
-| **0** (no items) | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **1** (w=2, v=3) | 0 | 0 | 3 | 3 | 3 | 3 | 3 | 3 | 3 |
-| **2** (w=3, v=4) | 0 | 0 | 3 | 4 | 4 | 7 | 7 | 7 | 7 |
-| **3** (w=4, v=5) | 0 | 0 | 3 | 4 | 5 | 7 | 8 | 9 | 9 |
-| **4** (w=5, v=6) | 0 | 0 | 3 | 4 | 5 | 7 | 8 | 9 | **10** |
-
-Reading `dp[4][8]` = **10** → take items with weights `3` and `5` (values `4 + 6 = 10`).
 
 ### Time Complexity
 
 | Aspect | Complexity |
 |--------|-----------|
-| **Time** | **O(N × W)** — where `N` = number of items, `W` = `capacity`. Two nested loops. |
-| **Space** | **O(N × W)** — full 2D table. (Can be optimized to **O(W)** with a 1D rolling array, but this implementation uses the 2D version for clarity.) |
+| **Time** | **O(N × W)** — `N` = items, `W` = capacity |
+| **Space** | **O(N × W)** — full 2D table |
+
+---
+
+## Function 3: `subsets(nums)` — Pattern 13: Backtracking
+
+### What It Does
+
+Generates **all possible subsets** (the power set) of a list of numbers. For `n` elements, there are `2^n` subsets (including the empty set and the full set).
+
+### Code Walkthrough
+
+```python
+def subsets(nums):
+    result = []                          # Step 1
+
+    def backtrack(start, path):          # Step 2
+        result.append(path[:])           # Step 3
+        for i in range(start, len(nums)):  # Step 4
+            path.append(nums[i])         # Step 5  (Choose)
+            backtrack(i + 1, path)       # Step 6  (Explore)
+            path.pop()                   # Step 7  (Un-choose)
+
+    backtrack(0, [])                     # Step 8
+    return result                        # Step 9
+```
+
+| Step | Line | Explanation |
+|------|------|-------------|
+| 1 | `result = []` | Initialize an empty list to collect all subsets. |
+| 2 | `def backtrack(start, path):` | Define the recursive helper. `start` = index to begin picking from (avoids duplicates/revisiting). `path` = the subset we're currently building. |
+| 3 | `result.append(path[:])` | **Record the current subset.** `path[:]` creates a **copy** — critical because `path` is mutated in-place. This runs at *every* call, meaning every partial path (including `[]`) is a valid subset. |
+| 4 | `for i in range(start, len(nums)):` | Try adding each remaining element (from index `start` onwards) to the current path. Starting at `start` ensures we never go backwards, which **prevents duplicate subsets**. |
+| 5 | `path.append(nums[i])` | **Choose**: add element `nums[i]` to the current subset. |
+| 6 | `backtrack(i + 1, path)` | **Explore**: recurse with `start = i + 1`, so only elements *after* the one we just picked are considered next. |
+| 7 | `path.pop()` | **Un-choose (Backtrack)**: remove the last element to restore the state, so the next iteration of the `for` loop can try a *different* element at this position. |
+| 8 | `backtrack(0, [])` | Kick off the recursion from index `0` with an empty path. |
+| 9 | `return result` | Return all collected subsets. |
+
+### Why It Works (Intuition — The Backtracking Pattern)
+
+The function uses the classic **Choose → Explore → Un-choose** backtracking template:
+
+```
+                        backtrack(0, [])
+                      /        |         \
+               [1]            [2]          [3]
+              /    \            |
+          [1,2]   [1,3]      [2,3]
+           |
+        [1,2,3]
+```
+
+At each node in this recursion tree:
+1. The **current path is recorded** as a valid subset (step 3)
+2. We **try extending** the path with each unused element after `start` (step 4–5)
+3. After exploring that branch, we **undo** the choice and try the next element (step 7)
+
+This guarantees every possible combination is visited exactly once.
+
+### Example
+
+```python
+nums = [1, 2, 3]
+print(subsets(nums))
+# Output: [[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]
+```
+
+**Step-by-step trace:**
+
+| Call | `start` | `path` | Action |
+|------|---------|--------|--------|
+| 1 | 0 | `[]` | Append `[]` to result |
+| 2 | — | `[1]` | Choose `1`, recurse |
+| 3 | 1 | `[1]` | Append `[1]` to result |
+| 4 | — | `[1,2]` | Choose `2`, recurse |
+| 5 | 2 | `[1,2]` | Append `[1,2]` to result |
+| 6 | — | `[1,2,3]` | Choose `3`, recurse |
+| 7 | 3 | `[1,2,3]` | Append `[1,2,3]` to result. Loop ends (start=3 = len). Return. |
+| 8 | — | `[1,2]` | Pop `3`. Loop ends. Return. |
+| 9 | — | `[1]` | Pop `2`. Next iteration: choose `3` |
+| 10 | — | `[1,3]` | Choose `3`, recurse |
+| 11 | 3 | `[1,3]` | Append `[1,3]`. Loop ends. Return. |
+| 12 | — | `[1]` | Pop `3`. Loop ends. Return. |
+| 13 | — | `[]` | Pop `1`. Next iteration: choose `2` |
+| 14 | — | `[2]` | Choose `2`, recurse |
+| 15 | 2 | `[2]` | Append `[2]`. Choose `3`, recurse |
+| 16 | 3 | `[2,3]` | Append `[2,3]`. Return. |
+| 17 | — | `[2]` | Pop `3`. Return. |
+| 18 | — | `[]` | Pop `2`. Next iteration: choose `3` |
+| 19 | — | `[3]` | Choose `3`, recurse |
+| 20 | 3 | `[3]` | Append `[3]`. Return. |
+| 21 | — | `[]` | Pop `3`. Loop ends. Done! |
+
+**Final result**: `[[], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]]` — all **8 = 2³** subsets.
+
+### Time Complexity
+
+| Aspect | Complexity | Reasoning |
+|--------|-----------|-----------|
+| **Time** | **O(N × 2ᴺ)** | There are `2^N` subsets. For each subset, copying the path (`path[:]`) takes up to `O(N)` time. |
+| **Space** | **O(N × 2ᴺ)** | Storing all `2^N` subsets, each of average length `N/2`. The recursion stack adds `O(N)` depth, dominated by the output size. |
+
+> [!TIP]
+> **Why O(N × 2ᴺ) and not just O(2ᴺ)?** Because each of the `2^N` subsets must be *copied* into the result list. Copying a subset of length `k` costs `O(k)`, and the sum of all subset sizes is `N × 2^(N-1)`, which is `O(N × 2^N)`.
 
 ---
 
 ## Summary Comparison
 
-| Function | Problem | Time | Space | Key Idea |
-|----------|---------|------|-------|----------|
-| `coin_change` | Min coins to reach amount | O(C × A) | O(A) | Unbounded — each coin usable multiple times |
-| `knapsack` | Max value within weight limit | O(N × W) | O(N × W) | 0/1 — each item used at most once |
-
-> [!TIP]
-> Both functions follow the **bottom-up DP** pattern: define a table, set base cases, fill the table iteratively using a recurrence relation, and read the answer from a specific cell.
+| Function | Pattern | Problem | Time | Space |
+|----------|---------|---------|------|-------|
+| `coin_change` | DP (Bottom-up) | Min coins to reach amount | O(C × A) | O(A) |
+| `knapsack` | DP (Bottom-up) | Max value within weight limit | O(N × W) | O(N × W) |
+| `subsets` | Backtracking | Generate all subsets | O(N × 2ᴺ) | O(N × 2ᴺ) |
